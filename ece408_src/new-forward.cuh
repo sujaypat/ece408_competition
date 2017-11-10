@@ -47,7 +47,7 @@ void forward(mshadow::Tensor<gpu, 4, DType> &y, const mshadow::Tensor<gpu, 4, DT
     
 
     // Use mxnet's CHECK_EQ to do assertions.
-    CHECK_EQ(0, 1) << "Missing an ECE408 GPU implementation!";
+    // CHECK_EQ(0, 1) << "Missing an ECE408 GPU implementation!";
 
     // You'll probably need to launch kernels against the right stream to keep MXNet happy
     // cudaStream_t s = y.stream_->stream_;
