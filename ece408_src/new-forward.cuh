@@ -51,16 +51,24 @@ void forward(mshadow::Tensor<gpu, 4, DType> &y, const mshadow::Tensor<gpu, 4, DT
 
     // You'll probably need to launch kernels against the right stream to keep MXNet happy
     // cudaStream_t s = y.stream_->stream_;
+    cudaStream_t s = y.stream_->stream_;
 
     // Extract the tensor dimensions into B,M,C,H,W,K
     // ...
-
-    // Set the kernel dimensions
-    // dim3 gridDim(0);
-    // dim3 blockDim(0);
+    const int B = x.shape_[0];
+    const int M = y.shape_[1];
+    const int C = x.shape_[1];
+    const int H = x.shape_[2];
+    const int W = x.shape_[3];
+    const int K = w.shape_[3];
+    
+	// Set the kernel dimensions
+    dim3 gridDim(0);
+    dim3 blockDim(0);
 
     // Call the kernel
     // forward_kernel<gpu, DType><<<gridDim, blockDim, 0, s>>>(y.dptr_,x.dptr_,w.dptr_, B,M,C,H,W,K);
+    forward_kernel<gpu, DType><<<gridDim, blockDim, 0, s>>>(y.dptr_,x.dptr_,w.dptr_, B,M,C,H,W,K);
 
     // Use MSHADOW_CUDA_CALL to check for CUDA runtime errors.
     MSHADOW_CUDA_CALL(cudaDeviceSynchronize());
