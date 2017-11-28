@@ -28,11 +28,11 @@ You may wish to stay ahead of these deadlines (particularly, allow more than two
     1. [Run the MXNet baseline forward CPU pass.]()
     2. [Run the MXNet baseline forward GPU pass.]()
     3. [Generate a profile of the GPU forward pass using `nvprof`.]()
-2. [Milestone 2: A New CPU Layer in MXNet: Due 11/17/2017](#markdown-header-milestone-2)
+2. [Milestone 2: A New CPU Layer in MXNet: Due 10pm 11/17/2017](#markdown-header-milestone-2)
     1. [Implement a CPU convolution pass in MXNet]()
-2. [Milestone 3: A New GPU Layer in MXNet: Due 12/1/2017](#markdown-header-milestone-3)
+2. [Milestone 3: A New GPU Layer in MXNet: Due 5pm 12/1/2017](#markdown-header-milestone-3)
     1. [Implement a GPU convolution in MXNet]()
-3. [Final Submission: Optimized GPU Forward Implementation: Due 12/15/2017](#markdown-header-final-submission)
+3. [Final Submission: Optimized GPU Forward Implementation: Due 5pm 12/15/2017](#markdown-header-final-submission)
     1. [Implement an optimized GPU convolution in MXNet]()
     2. [Final Report](#markdown-header-final-report)
 
@@ -92,11 +92,11 @@ Clone this repository to get the project directory.
 
 Download the rai binary for your platform. You will probably use it for development, and definitely use it for submission.
 
-| Operating System | Architecture | Stable Version (0.2.18) Link                                                             |
+| Operating System | Architecture | Stable Version (0.2.19) Link                                                             |
 | ---------------- | ------------ | ------------------------------------------------------------------------------- |
-| Linux            | amd64        | [URL](https://github.com/rai-project/rai/releases/download/v0.2.18/linux-amd64.tar.gz)   |
-| OSX/Darwin       | amd64        | [URL](https://github.com/rai-project/rai/releases/download/v0.2.18/darwin-amd64.tar.gz)  |
-| Windows          | amd64        | [URL](https://github.com/rai-project/rai/releases/download/v0.2.18/windows-amd64.tar.gz) |
+| Linux            | amd64        | [URL](https://github.com/rai-project/rai/releases/download/v0.2.19/linux-amd64.tar.gz)   |
+| OSX/Darwin       | amd64        | [URL](https://github.com/rai-project/rai/releases/download/v0.2.19/darwin-amd64.tar.gz)  |
+| Windows          | amd64        | [URL](https://github.com/rai-project/rai/releases/download/v0.2.19/windows-amd64.tar.gz) |
 
 You should have received a `.rai_profile` file by email.
 Put that file in `~/.rai_profile` (Linux/macOS) or `%HOME%/.rai_profile` (Windows).
@@ -226,7 +226,7 @@ You can find more information about nvprof in the [CUDA Toolkit Documentation](h
 In your report, list a table of the most time-consuming kernels.
 
 ## Milestone 2
-**A New CPU Convolution Layer in MxNet: Due Friday November 17th, 2017**
+**A New CPU Convolution Layer in MxNet: Due 10pm Friday November 17th, 2017**
 
 A draft of the `report.pdf` with content up through Milestone 2 must be submitted **through rai** for this milestone.
 
@@ -238,6 +238,21 @@ See the [description](#markdown-header-skeleton-code-description) of the skeleto
 
 Modify `ece408_src/new-forward.h` to implement the forward convolution described in [Chapter 16 of the textbook](https://wiki.illinois.edu/wiki/display/ECE408Fall2017/Textbook+Chapters).
 The performance of the CPU convolution is not part of the project evaluation.
+The algorithm is also below, for your convenience
+
+    for b = 0 .. B)                    // for each image in the batch 
+        for m = 0 .. M                 // for each output feature maps
+            for h = 0 .. H_out         // for each output element
+                for w = 0 .. W_out
+                {
+                    y[b][m][h][w] = 0;
+                    for c = 0 .. C     // sum over all input feature maps
+                        for p = 0 .. K // KxK filter
+                            for q = 0 .. K
+                                y[b][m][h][w] += x[b][c][h + p][w + q] * k[m][c][p][q]
+                }
+
+Unlike the convolutions described in the class, note that this one is not centered on the input image.
 
 Because this operator is different than the built-in mxnet operator, you will need to load a different model.
 `m2.1.py` handles this for you.
@@ -259,9 +274,7 @@ The correctness does depend on the data size. Check your correctness on the full
 
 For example, you could modify `rai_build.yml` to run
 
-    - python m3.1.py ece408-low 100
-
-to generate two complementary profile files, running on smaller datasets.
+    - python m2.1.py ece408-low 100
 
 | Correctness | Size | Model  |
 |-------------| -----| -----  |
@@ -280,8 +293,11 @@ to mark your submission. This will notify the teaching staff of which `report.pd
 
 This will run your code against the two datasets, and check the time and correctness.
 
+Your `report.pdf` at this stage should contain content up through M2.1  described in the final report section.
+
+
 ## Milestone 3
-**A New GPU Convolution Layer in MxNet: Due Friday December 1st, 2017**
+**A New GPU Convolution Layer in MxNet: Due 5pm Friday December 1st, 2017**
 
 A draft of the `report.pdf` with content up through Milestone 3 must be submitted **through rai** for this milestone.
 
@@ -311,11 +327,15 @@ You should see something like this:
 
 In this example, the forward layer took 14.8954 seconds, and the forward_kernel took 14.8952 seconds.
 
+You can create a single profile for ece408-high with 10000 images.
+
 **Deliverables**
 Again, use `rai -p <project folder> --submit=m3` to submit your code.
 
+Your `report.pdf` at this stage should contain content up through M3.1 described in the final report section.
+
 ## Final Submission
-**An Optimized Layer and Final Report: Due Friday December 15th, 2017**
+**An Optimized Layer and Final Report: Due 5pm Friday December 15th, 2017**
 
 ### Optimized Layer
 
@@ -340,23 +360,38 @@ You may use nvprof to collect more detailed information through timeline and ana
 you can collect the generated files by following the download link reported by rai at the end of the execution.
 `--analysis-metrics` significantly slows the run time, you may wish to modify the python scripts to run on smaller datasets during this profiling.
 
+The ranking is determined by the minimum run time of kernels with correct inferences which are run with the `--submit` flag.
+The `rai ranking` command is not the final word: the staff will re-run all final submissions 3 times and choose the fastest result as your time.
+THe ranking is determined solely by the same value printed by `Op Time:` during your run.
+That `Op Time` is computed by wrapping the mxnet op that you implement in a timer.
+
 **Deliverables**
 
 ### Final Report
 
 You should provide a brief PDF final report `report.pdf`, with the following content.
+The report does not need to be a particular length, but should be long enough to cover all of this content.
 
 1. **Baseline Results**
-    1. M1.1: mxnet CPU layer correctness and elapsed time for the whole pythong program.
+    1. M1.1: mxnet CPU layer correctness and elapsed time for the whole python program.
+     You can measure the elapsed time of the program with the `time` command.
     2. M1.2/M1.3: mxnet GPU layer performance results (`nvprof` profile). Include your profile, and describe in a few words how the GPU is spending its time.
-    3. M2.1: your baseline cpu implementation performance results (time)
-    4. M3.1: your baseline gpu implementation performance results (time, `nvprof` profile)
+    This is to confirm you can generate a profile and can interpret it.
+    3. M2.1: your baseline cpu implementation correctness and performance results (time).
+    The `Op Time:` printed by the program will show the time just for the convolution layer.
+    The implementation should have the expected correctness.
+    Include how you divided work amongst your team (even though there is not much work).
+    4. M3.1: your baseline gpu implementation performance results (time, `nvprof` profile).
+    The implementation should have the expected correctness.
+    Include how you divided work amongst your team (even though there is not much work).
 2. **Optimization Approach and Results**
     * how you identified the optimization opportunity
     * why you thought the approach would be fruitful
     * the effect of the optimization. was it fruitful, and why or why not. Use nvprof as needed to justify your explanation.
     * Any external references used during identification or development of the optimization
+    * How  your team organized and divided up this work.
 3. **References** (as needed)
+4. **(Optional) Suggestions for Improving Next Year**
 
 ### Rubric
 
