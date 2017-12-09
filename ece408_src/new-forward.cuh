@@ -46,6 +46,57 @@ __global__ void forward_kernel(DType *y, const DType *x, const DType *k, const i
 	#undef k4d
 }
 
+
+template<typename gpu, typename DType>
+__global__ void unroll_kernel(const int B, const int C, const int H, const int W, const int K, const DType *x, DType *x_unroll)
+{
+	const int H_out = H - K + 1;
+	const int W_out = W - K + 1;
+
+	#define y4d(i3,i2,i1,i0) y[(i3) * (M * H_out * W_out) + (i2)*(H_out * W_out) + (i1)*(W_out) + i0]
+	#define x4d(i3,i2,i1,i0) x[(i3) * (C * H * W) + (i2)*(H * W) + (i1)*(W) + i0]
+	#define k4d(i3,i2,i1,i0) k[(i3) * (C * K * K) + (i2)*(K * K) + (i1)*(K) + i0]
+
+	int b = blockIdx.x;
+	int c = blockIdx.y;
+	int h = blockIdx.z / W_grid + threadIdx.y;
+	int w = blockIdx.z % W_grid + threadIdx.x;
+	DType acc = 0;
+
+	int w_base = c * (K*K);
+	for(int p = 0; p < K; p++)
+	{
+		for(int q = 0; q < K; q++)
+		{
+			x_unroll[b, h * W_out + w, w_base + p * K + q] = x[b, c, h + p, w + q];
+		}
+
+	}
+
+
+
+/*
+	if(h < H_out && w < W_out)
+	{
+		for(int c = 0; c < C; c++)
+		{
+			for(int p = 0; p < K; p++)
+			{
+				for(int q = 0; q < K; q++)
+				{
+					acc += x4d(b, c, h+p, w+q) * k4d(m, c, p, q);    				
+				}
+			}
+		}
+		y4d(b, m, h, w) = acc;
+	}
+*/
+	#undef y4d
+	#undef x4d
+	#undef k4d
+}
+
+
 // This function is called by new-inl.h
 // Any code you write should be executed by this function
 template<typename gpu, typename DType>
