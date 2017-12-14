@@ -21,19 +21,14 @@ __global__ void forward_kernel(DType *y, const DType *x, const DType *k, const i
     int block_num = blockIdx.x;
     int local_h = threadIdx.y;
     int local_w = threadIdx.x;
-    int input_size = 28 * 28;
-    int output_size = 24 * 24;
-    int read_base = block_num * input_size + local_h * 28 + local_w;
-    int write_base = 0;
     DType sum = 0.0;
-    // load 28 * 28 input
-    x_shared[local_h * 28 + local_w] = x[read_base];
+
+    x_shared[local_h * 28 + local_w] = x[block_num * 28 * 28 + local_h * 28 + local_w];
     __syncthreads();
 
     // compute
     if (local_h < 24 && local_w < 24) {
-        write_base = block_num * 50 * output_size + local_h * 24 + local_w;
-        #pragma unroll 3
+        #pragma unroll 15
         for (int kernel_index = 0; kernel_index < 50; ++kernel_index) {
             sum = 0.0;
             for (int i = 0; i < 5; ++i) {
@@ -42,23 +37,15 @@ __global__ void forward_kernel(DType *y, const DType *x, const DType *k, const i
                     constant_kernel[kernel_index * 25 + i * 5 + j];
                 }
             }
-            y[write_base + kernel_index * output_size] = sum;
+            y[block_num * 50 * 24 * 24 + local_h * 24 + local_w + kernel_index * 24 * 24] = sum;
         }
-        write_base += 50 * output_size;
     }
 }
-
-
-
 
 // This function is called by new-inl.h
 // Any code you write should be executed by this function
 template<typename gpu, typename DType>
 void forward(mshadow::Tensor<gpu, 4, DType> &y, const mshadow::Tensor<gpu, 4, DType> &x, const mshadow::Tensor<gpu, 4, DType> &w) {
-
-
-    // Use mxnet's CHECK_EQ to do assertions.
-    // CHECK_EQ(0, 1) << "Starting a GPU implementation based on share memory!";
 
     // You'll probably need to launch kernels against the right stream to keep MXNet happy
     cudaStream_t s = y.stream_->stream_;
@@ -77,15 +64,13 @@ void forward(mshadow::Tensor<gpu, 4, DType> &y, const mshadow::Tensor<gpu, 4, DT
 
     // allocate constant_kernel
     cudaMemcpyToSymbol(constant_kernel, w.dptr_, sizeof(float) * 50 * 25, 0, cudaMemcpyDeviceToDevice);
-    // Call the kernel                                0 is sharemem s is stream
-    forward_kernel<gpu, DType><<<gridDim, blockDim, sizeof(DType) * H * W, s>>>(y.dptr_,x.dptr_,w.dptr_, B, M, C, H, W, K);
+
+    forward_kernel<gpu, DType><<<gridDim, blockDim, 0, s>>>(y.dptr_,x.dptr_,w.dptr_, B, M, C, H, W, K);
 
     // Use MSHADOW_CUDA_CALL to check for CUDA runtime errors.
     MSHADOW_CUDA_CALL(cudaDeviceSynchronize());
 
 }
-
-
 
 }
 }
